@@ -89,7 +89,7 @@ sudo apt install -y ufw
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow ssh
-#sudo ufw allow OpenSSH         # for some distros this might be required
+#sudo ufw allow OpenSSH       # for some distros this might be required
 sudo ufw allow from <your-lan-subnet> to any port 5432 proto tcp
 sudo ufw allow from <your-lan-subnet> to any port 5678 proto tcp
 sudo ufw enable

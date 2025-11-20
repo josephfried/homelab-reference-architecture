@@ -1,0 +1,88 @@
+name: homelab
+
+networks:
+  svc:
+
+volumes:
+  pg_data:
+  n8n_data:
+#  nocodb_data:
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    networks: [svc]
+    ports:
+      - "5432:5432"          # LAN access for DBeaver
+    environment:
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+      POSTGRES_DB: ${PGDATABASE}
+      PGTZ: America/New_York
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    networks: [svc]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5678:5678"          # keep for optional local http by IP or SSH tunnel
+    environment:
+      GENERIC_TIMEZONE: America/New_York
+      TZ: America/New_York
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: ${N8N_HOST}
+      N8N_PROTOCOL: https
+      N8N_PORT: 5678
+      WEBHOOK_URL: https://${N8N_HOST}
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${PGDATABASE}
+      DB_POSTGRESDB_USER: ${PGUSER}
+      DB_POSTGRESDB_PASSWORD: ${PGPASSWORD}
+      DB_POSTGRESDB_SCHEMA: public
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    networks: [svc]
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    command: tunnel --no-autoupdate run
+
+
+# Optional: NocoDB (draft, untested in this setup)
+# Uncomment only if you plan to configure it manually.
+
+#  nocodb:
+#    image: nocodb/nocodb:latest
+#    restart: unless-stopped
+#    networks: [svc]
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    ports:
+#      - "8080:8080"          # optional LAN http by IP or SSH tunnel
+#    environment:
+#      NC_DB: pg
+#      NC_DB_HOST: postgres
+#      NC_DB_PORT: 5432
+#      NC_DB_USER: ${NC_DB_USER}
+#      NC_DB_PASS: ${NC_DB_PASS}
+#      NC_DB_NAME: ${NC_DB_NAME}
+#      NC_PUBLIC_URL: https://${NOCODB_HOST}
+#    volumes:
+#      - nocodb_data:/usr/app/data

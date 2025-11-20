@@ -1,0 +1,26 @@
+# Do not commit secrets or environment-specific values
+.env
+
+# Cloudflared private credentials and config
+cloudflared/*.json
+cloudflared/config.yml
+cloudflared/config.yaml
+cloudflared/config.yaml.backup
+
+# Private folder for anything you don't want public
+private/
+
+# Database dumps / backups
+*.sql
+*.dump
+*.tgz
+
+# Keys and certificates
+*.key
+*.pem
+
+# MacOS system files
+.DS_Store
+
+# Editor/IDE clutter
+.vscode/
